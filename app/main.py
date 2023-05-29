@@ -1,5 +1,12 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from collections import defaultdict
+
+
+
+from sqlalchemy.inspection import inspect
 from fastapi_sqlalchemy import DBSessionMiddleware, db
 
 from app.schema import Book as SchemaBook
@@ -18,6 +25,19 @@ load_dotenv('.env')
 
 
 app = FastAPI()
+templates = Jinja2Templates(directory="app/templates")
+
+
+
+import pandas as pd
+def query_to_dict(rset):
+    result = defaultdict(list)
+    for obj in rset:
+        instance = inspect(obj)
+        for key, x in instance.attrs.items():
+            result[key].append(x.value)
+    return result
+
 
 # to avoid csrftokenError
 app.add_middleware(DBSessionMiddleware, db_url='postgresql://postgres:password123@postgres/fastapi')
@@ -35,9 +55,11 @@ async def book(book: SchemaBook):
     return db_book
 
 @app.get('/books/')
-async def books():
+async def books(request: Request):
     books = db.session.query(ModelBook).all()
-    return books
+    df = pd.DataFrame(query_to_dict(books))
+    return templates.TemplateResponse("table.html", 
+            {"request": request, "table": df.to_html()})
 
 @app.get('/books/{book_id}')
 async def books(book_id: int):

@@ -5,3 +5,5 @@ alembic
 psycopg2
 uvicorn 
 python-dotenv
+pandas
+Jinja2==3.0.3
