@@ -43,9 +43,9 @@ def query_to_dict(rset):
 app.add_middleware(DBSessionMiddleware, db_url='postgresql://postgres:password123@postgres/fastapi')
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to book world"}
-
+async def root(request: Request,response_class=HTMLResponse):
+    return templates.TemplateResponse("base.html", 
+            {"request": request})    
 
 @app.post('/book/', response_model=SchemaBook)
 async def book(book: SchemaBook):
@@ -55,7 +55,7 @@ async def book(book: SchemaBook):
     return db_book
 
 @app.get('/books/')
-async def books(request: Request):
+async def books(request: Request, response_class=HTMLResponse):
     books = db.session.query(ModelBook).all()
     df = pd.DataFrame(query_to_dict(books))
     return templates.TemplateResponse("table.html", 
